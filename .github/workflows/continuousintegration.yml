@@ -1,20 +1,13 @@
 name: Continuous Integration Aula Devops
 on:
-  push:
+  pull request:
     branches:
       - main
 
 jobs:
-  delivery:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
 
-      - name: Simulando Continuous Delivery
-        uses: actions/upload-artifact@v4
-        with:
-          name: projetozip.zip
-          path: |
-            main.py
-            README.md
