@@ -18,3 +18,14 @@ jobs:
           path: |
             main.py
             README.md
+            
+  deploy:
+    runs on: ubuntu-latest
+    needs: deliver
+    steps:
+      steps:
+        - uses: actions/download-artifact@v5
+          with:
+            name: projetozip.zip
+        - name: Display structure of downloaded files
+          run: ls -R
