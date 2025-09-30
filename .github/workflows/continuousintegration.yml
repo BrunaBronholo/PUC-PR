@@ -1,6 +1,6 @@
 name: Continuous Integration Aula Devops
 on:
-  pull request:
+  pull_request:
     branches:
       - main
 
