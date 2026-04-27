@@ -1,15 +1,30 @@
-name: Discord
+name: Discord PR Alerts
+
 on:
-  - push
+  pull_request:
+    branches: [ main ]
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
-  discord:
+  discord-notify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Run Discord Webhook
+
+      - name: Notify Discord - PR aberto/atualizado
+        if: github.event.action != 'closed'
         uses: Sniddl/discord-commits@v1.6
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          message: "🔔 **PR #${{ github.event.pull_request.number }}** — *${{ github.event.pull_request.title }}* por **${{ github.event.pull_request.user.login }}**\nBranch: `${{ github.head_ref }}` → `${{ github.base_ref }}`\n${{ github.event.pull_request.html_url }}"
+          template: "avatar-with-link"
+          include-extras: true
+
+      - name: Notify Discord - PR fechado/mergeado
+        if: github.event.action == 'closed'
+        uses: Sniddl/discord-commits@v1.6
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          message: "${{ github.event.pull_request.merged && '✅ PR mergeado' || '❌ PR fechado sem merge' }} — **#${{ github.event.pull_request.number }}** *${{ github.event.pull_request.title }}*"
           template: "avatar-with-link"
           include-extras: true
