@@ -1,0 +1,77 @@
+name: PR Alerts and Tests
+
+on:
+  pull_request:
+    branches: [ main, master ]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test-and-notify:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Notify Discord - PR Started
+        if: always()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "🚀 Pipeline iniciada",
+                   "description": "PR **#${{ github.event.pull_request.number }}** — ${{ github.event.pull_request.title }}",
+                   "color": 3447003,
+                   "fields": [
+                     {"name": "Autor", "value": "${{ github.event.pull_request.user.login }}", "inline": true},
+                     {"name": "Branch", "value": "${{ github.head_ref }}", "inline": true}
+                   ]
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Run unit tests
+        id: tests
+        run: pytest --tb=short
+
+      - name: Notify Discord - Success
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "✅ Testes aprovados",
+                   "description": "PR **#${{ github.event.pull_request.number }}** passou em todos os testes unitários.",
+                   "color": 3066993,
+                   "url": "${{ github.event.pull_request.html_url }}"
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Notify Discord - Failure
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d '{
+                 "embeds": [{
+                   "title": "❌ Falha nos testes",
+                   "description": "PR **#${{ github.event.pull_request.number }}** falhou. Verifique os logs.",
+                   "color": 15158332,
+                   "url": "${{ github.event.pull_request.html_url }}"
+                 }]
+               }' \
+               ${{ secrets.DISCORD_WEBHOOK }}
