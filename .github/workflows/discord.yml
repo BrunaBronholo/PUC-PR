@@ -9,22 +9,58 @@ jobs:
   discord-notify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Notify Discord - PR aberto
+        if: github.event.action == 'opened'
+        run: |
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "username": "GitHub Actions",
+            "embeds": [{
+              "title": "🔔 Novo Pull Request aberto",
+              "description": "**#${{ github.event.pull_request.number }}** — ${{ github.event.pull_request.title }}",
+              "color": 3447003,
+              "url": "${{ github.event.pull_request.html_url }}",
+              "fields": [
+                {"name": "Autor", "value": "${{ github.event.pull_request.user.login }}", "inline": true},
+                {"name": "Branch", "value": "`${{ github.head_ref }}` → `${{ github.base_ref }}`", "inline": true}
+              ]
+            }]
+          }' "${{ secrets.DISCORD_WEBHOOK }}"
 
-      - name: Notify Discord - PR aberto/atualizado
-        if: github.event.action != 'closed'
-        uses: Sniddl/discord-commits@v1.6
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          message: "🔔 **PR #${{ github.event.pull_request.number }}** — *${{ github.event.pull_request.title }}* por **${{ github.event.pull_request.user.login }}**\nBranch: `${{ github.head_ref }}` → `${{ github.base_ref }}`\n${{ github.event.pull_request.html_url }}"
-          template: "avatar-with-link"
-          include-extras: true
+      - name: Notify Discord - PR atualizado
+        if: github.event.action == 'synchronize'
+        run: |
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "username": "GitHub Actions",
+            "embeds": [{
+              "title": "🔄 Pull Request atualizado",
+              "description": "**#${{ github.event.pull_request.number }}** — ${{ github.event.pull_request.title }}",
+              "color": 16776960,
+              "url": "${{ github.event.pull_request.html_url }}"
+            }]
+          }' "${{ secrets.DISCORD_WEBHOOK }}"
 
-      - name: Notify Discord - PR fechado/mergeado
-        if: github.event.action == 'closed'
-        uses: Sniddl/discord-commits@v1.6
-        with:
-          webhook: ${{ secrets.DISCORD_WEBHOOK }}
-          message: "${{ github.event.pull_request.merged && '✅ PR mergeado' || '❌ PR fechado sem merge' }} — **#${{ github.event.pull_request.number }}** *${{ github.event.pull_request.title }}*"
-          template: "avatar-with-link"
-          include-extras: true
+      - name: Notify Discord - PR mergeado
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        run: |
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "username": "GitHub Actions",
+            "embeds": [{
+              "title": "✅ Pull Request mergeado",
+              "description": "**#${{ github.event.pull_request.number }}** — ${{ github.event.pull_request.title }}",
+              "color": 3066993,
+              "url": "${{ github.event.pull_request.html_url }}"
+            }]
+          }' "${{ secrets.DISCORD_WEBHOOK }}"
+
+      - name: Notify Discord - PR fechado sem merge
+        if: github.event.action == 'closed' && github.event.pull_request.merged == false
+        run: |
+          curl -H "Content-Type: application/json" -X POST -d '{
+            "username": "GitHub Actions",
+            "embeds": [{
+              "title": "❌ Pull Request fechado sem merge",
+              "description": "**#${{ github.event.pull_request.number }}** — ${{ github.event.pull_request.title }}",
+              "color": 15158332,
+              "url": "${{ github.event.pull_request.html_url }}"
+            }]
+          }' "${{ secrets.DISCORD_WEBHOOK }}"
